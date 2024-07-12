@@ -234,11 +234,12 @@ app.post("/data", async (req, res) => {
       .catch(error => {
         console.error('Error:', error);
       });
+    res.send("Message sent");
 
   } else {
+    res.send("Total Count exceeded");
     console.log("Total Count exceeded")
   }
-  res.send("Data received");
 });
 
 app.get("*", (req, res) => {
