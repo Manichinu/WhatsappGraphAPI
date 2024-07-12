@@ -190,7 +190,7 @@ app.get("/webhook", (req, res) => {
 
 app.post("/data", async (req, res) => {
   // console.log("Details: ", req.body);
-  const { PhoneNumberID, from, to, token } = req.body
+  const { PhoneNumberID, from, to, token, MessageTemplate } = req.body
 
   accessToken = await getAccessToken();
   siteId = await getSiteId(accessToken);
@@ -219,7 +219,7 @@ app.post("/data", async (req, res) => {
         "to": `${to}`,
         "type": "text",
         "text": {
-          "body": "This is the test link https://www.google.com/"
+          "body": `${MessageTemplate}`
         }
       }),
     };
