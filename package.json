@@ -1,0 +1,46 @@
+{
+  "name": "whatsapp-echo-webhook",
+  "version": "1.0.0",
+  "description": "An example WhatsApp webhook server https://developers.facebook.com/docs/whatsapp/sample-app-endpoints",
+  "main": "server.ts",
+  "type": "commonjs",
+  "scripts": {
+    "start": "nodemon server.ts",
+    "build": "tsc"
+  },
+  "author": "WhatsApp Team",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/msal-node": "^2.10.0",
+    "@pnp/common": "^2.15.0",
+    "@pnp/sp": "^4.2.0",
+    "axios": "^1.6.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "fs": "^0.0.2",
+    "nodemon": "^3.1.1",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/mongoose": "^5.11.97",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.12.7",
+    "@types/uuid": "^9.0.8",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [],
+  "webApiPermissionRequests": [
+    {
+      "resource": "Microsoft Graph",
+      "scope": "User.Read"
+    }
+  ]
+}

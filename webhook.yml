@@ -1,0 +1,25 @@
+name: formapi
+
+on:
+  push:
+    branches: [main]
+  # pull_request:
+  #  branches: [deployment]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16.x'
+      - name: Build Project
+        run: |
+          cd server
+          npm install node-schedule --save
+          npm install lodash --save
+          sudo npm i
+          npm run build 
+          sudo pm2 restart pm2.config.js
