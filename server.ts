@@ -2,12 +2,30 @@ import express from "express";
 import axios from "axios";
 import cors from "cors";
 import dotenv from "dotenv";
+import { Document, Packer, Table, TableRow, TableCell, Paragraph, TextRun, BorderStyle, WidthType, AlignmentType } from "docx";
+import fs from "fs";
+import bodyParser from "body-parser";
+import path from "path";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
+import mammoth from 'mammoth';
+
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use(bodyParser.json());
+
+
+// const data = [
+//   { sNo: 1, name: "John Doe", age: 30, district: "New York" },
+//   { sNo: 2, name: "Jane Smith", age: 25, district: "Los Angeles" }
+// ];
+
+// module.exports = data;
 
 interface EnvVariables {
   WEBHOOK_VERIFY_TOKEN: string;
@@ -20,6 +38,7 @@ interface EnvVariables {
   UserNameVal: string;
   PasswordVal: any;
   CLIENT_SECRET: string;
+  LIBRARY_NAME: string;
 }
 
 const {
@@ -33,6 +52,7 @@ const {
   UserNameVal,
   PasswordVal,
   CLIENT_SECRET,
+  LIBRARY_NAME
 } = process.env as unknown as EnvVariables;
 
 async function getAccessToken() {
@@ -98,6 +118,20 @@ async function getListId(accessToken: string, siteId: string) {
     throw error;
   }
 }
+async function getLibraryId(accessToken: string, siteId: string) {
+  const listEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${LIBRARY_NAME}`;
+  try {
+    const response = await axios.get(listEndpoint, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data.id;
+  } catch (error: any) {
+    console.error("Error acquiring list ID:", error.response?.data || error.message);
+    throw error;
+  }
+}
 async function getAllListItems(accessToken: string, siteId: string, listId: string) {
   let listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`;
   let items: any[] = [];
@@ -150,6 +184,61 @@ let accessToken: any;
 let siteId;
 let listId;
 let ListItems;
+let libraryId;
+
+// async function createWordDocument() {
+//   const table = new Table({
+//     rows: [
+//       new TableRow({
+//         children: [
+//           new TableCell({
+//             children: [new Paragraph("S.No")],
+//           }),
+//           new TableCell({
+//             children: [new Paragraph("Name")],
+//           }),
+//           new TableCell({
+//             children: [new Paragraph("Age")],
+//           }),
+//           new TableCell({
+//             children: [new Paragraph("District")],
+//           }),
+//         ],
+//       }),
+//       ...data.map(item =>
+//         new TableRow({
+//           children: [
+//             new TableCell({
+//               children: [new Paragraph(item.sNo.toString())],
+//             }),
+//             new TableCell({
+//               children: [new Paragraph(item.name)],
+//             }),
+//             new TableCell({
+//               children: [new Paragraph(item.age.toString())],
+//             }),
+//             new TableCell({
+//               children: [new Paragraph(item.district)],
+//             }),
+//           ],
+//         })
+//       ),
+//     ],
+//   });
+
+//   const doc = new Document({
+//     sections: [
+//       {
+//         children: [table],
+//       },
+//     ],
+//   });
+
+//   const buffer = await Packer.toBuffer(doc);
+//   fs.writeFileSync("DataTable.docx", buffer);
+// }
+
+// createWordDocument().catch(console.error);
 
 app.post("/webhook", async (req, res) => {
   console.log("Incoming webhook message:", JSON.stringify(req.body, null, 2));
@@ -241,6 +330,289 @@ app.post("/data", async (req, res) => {
     console.log("Total Count exceeded")
   }
 });
+
+app.post("/generate-document", async (req, res) => {
+  const data = req.body;
+  // console.log(req.body)
+  // const table = new Table({
+  //   rows: [
+  //     new TableRow({
+  //       children: [
+  //         new TableCell({
+  //           children: [new Paragraph("S.No")],
+  //         }),
+  //         new TableCell({
+  //           children: [new Paragraph("Name")],
+  //         }),
+  //         new TableCell({
+  //           children: [new Paragraph("Age")],
+  //         }),
+  //         new TableCell({
+  //           children: [new Paragraph("District")],
+  //         }),
+  //       ],
+  //     }),
+  //     ...data.map((item: any) =>
+  //       new TableRow({
+  //         children: [
+  //           new TableCell({
+  //             children: [new Paragraph(item.sNo.toString())],
+  //           }),
+  //           new TableCell({
+  //             children: [new Paragraph(item.name)],
+  //           }),
+  //           new TableCell({
+  //             children: [new Paragraph(item.age.toString())],
+  //           }),
+  //           new TableCell({
+  //             children: [new Paragraph(item.district)],
+  //           }),
+  //         ],
+  //       })
+  //     ),
+  //   ],
+  // });
+  // const table = new Table({
+  //   rows: [
+  //     // Header row with styling
+  //     new TableRow({
+  //       children: [
+  //         new TableCell({
+  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "S.No", bold: true })] })],
+  //           borders: {
+  //             top: { style: BorderStyle.SINGLE, size: 2 },
+  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
+  //             left: { style: BorderStyle.SINGLE, size: 2 },
+  //             right: { style: BorderStyle.SINGLE, size: 2 },
+  //           },
+  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //         }),
+  //         new TableCell({
+  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Name", bold: true })] })],
+  //           borders: {
+  //             top: { style: BorderStyle.SINGLE, size: 2 },
+  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
+  //             left: { style: BorderStyle.SINGLE, size: 2 },
+  //             right: { style: BorderStyle.SINGLE, size: 2 },
+  //           },
+  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //         }),
+  //         new TableCell({
+  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Age", bold: true })] })],
+  //           borders: {
+  //             top: { style: BorderStyle.SINGLE, size: 2 },
+  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
+  //             left: { style: BorderStyle.SINGLE, size: 2 },
+  //             right: { style: BorderStyle.SINGLE, size: 2 },
+  //           },
+  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //         }),
+  //         new TableCell({
+  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "District", bold: true })] })],
+  //           borders: {
+  //             top: { style: BorderStyle.SINGLE, size: 2 },
+  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
+  //             left: { style: BorderStyle.SINGLE, size: 2 },
+  //             right: { style: BorderStyle.SINGLE, size: 2 },
+  //           },
+  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //         }),
+  //       ],
+  //     }),
+  //     // Data rows with styling
+  //     ...data.map((item: any) =>
+  //       new TableRow({
+  //         children: [
+  //           new TableCell({
+  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.sNo.toString() })] })],
+  //             borders: {
+  //               top: { style: BorderStyle.SINGLE, size: 1 },
+  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
+  //               left: { style: BorderStyle.SINGLE, size: 1 },
+  //               right: { style: BorderStyle.SINGLE, size: 1 },
+  //             },
+  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //           }),
+  //           new TableCell({
+  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.name })] })],
+  //             borders: {
+  //               top: { style: BorderStyle.SINGLE, size: 1 },
+  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
+  //               left: { style: BorderStyle.SINGLE, size: 1 },
+  //               right: { style: BorderStyle.SINGLE, size: 1 },
+  //             },
+  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //           }),
+  //           new TableCell({
+  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.age.toString() })] })],
+  //             borders: {
+  //               top: { style: BorderStyle.SINGLE, size: 1 },
+  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
+  //               left: { style: BorderStyle.SINGLE, size: 1 },
+  //               right: { style: BorderStyle.SINGLE, size: 1 },
+  //             },
+  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //           }),
+  //           new TableCell({
+  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.district })] })],
+  //             borders: {
+  //               top: { style: BorderStyle.SINGLE, size: 1 },
+  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
+  //               left: { style: BorderStyle.SINGLE, size: 1 },
+  //               right: { style: BorderStyle.SINGLE, size: 1 },
+  //             },
+  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
+  //           }),
+  //         ],
+  //       })
+  //     ),
+  //   ],
+  //   width: {
+  //     size: 10000,
+  //     type: WidthType.DXA,
+  //   },
+  // });
+
+  // const doc = new Document({
+  //   sections: [
+  //     {
+  //       children: [table],
+  //     },
+  //   ],
+  // });
+
+  // const buffer = await Packer.toBuffer(doc);
+  // Load the template document from the assets folder
+  const templatePath = path.join(__dirname, "Assets", "Templates.docx");
+
+
+  // // Set headers for file download
+  // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  // res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
+  // res.send(buffer);
+
+});
+
+app.post("/generate-documents", async (req, res) => {
+  const data = req.body;
+  // Define the paths
+  const templatePath = path.join(__dirname, 'Assets', 'Templates.docx');
+  const outputPath = path.join(__dirname, 'Assets', 'output.docx');
+
+  // Load the docx file as binary content
+  const content = fs.readFileSync(templatePath, 'binary');
+
+  // Create a new PizZip instance to read the binary content
+  const zip = new PizZip(content);
+
+  // Create a new Docxtemplater instance
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+  });
+
+  // Replace placeholders with actual values
+  doc.render({
+    User: data.title,
+    price: data.price,
+    details: data.details
+  });
+
+  // Generate the modified document
+  const buf = doc.getZip().generate({ type: 'nodebuffer' });
+
+  // Save the modified document to a new file
+  fs.writeFileSync(outputPath, buf);
+  // Set headers for file download
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
+  res.send(buf);
+
+  console.log('Document created successfully!');
+
+
+  // // Step 1: Fetch the template file from SharePoint
+  // async function getTemplateFile(accessToken: string, siteId: string, libraryId: string, itemId: string) {
+  //   const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/items/${itemId}/content`;
+
+  //   try {
+  //     const response = await axios.get(fileEndpoint, {
+  //       headers: {
+  //         Authorization: `Bearer ${accessToken}`,
+  //       },
+  //       responseType: 'arraybuffer', // Important to get the file as binary data
+  //     });
+
+  //     return response.data;
+  //   } catch (error: any) {
+  //     console.error("Error fetching template file:", error.response?.data || error.message);
+  //     throw error;
+  //   }
+  // }
+
+  // // Step 2: Upload the generated document back to SharePoint
+  // async function uploadFileToSharePoint(accessToken: string, siteId: string, libraryId: string, fileName: string, fileContent: Buffer) {
+  //   const uploadEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/root:/${fileName}:/content`;
+
+  //   try {
+  //     const response = await axios.put(uploadEndpoint, fileContent, {
+  //       headers: {
+  //         Authorization: `Bearer ${accessToken}`,
+  //         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  //       },
+  //     });
+
+  //     return response.data;
+  //   } catch (error: any) {
+  //     console.error("Error uploading file to SharePoint:", error.response?.data || error.message);
+  //     throw error;
+  //   }
+  // }
+
+  // try {
+  //   accessToken = await getAccessToken();
+  //   siteId = await getSiteId(accessToken);
+  //   libraryId = await getLibraryId(accessToken, siteId);
+  //   // console.log("accessToken", accessToken)
+  //   // console.log("siteId", siteId)
+  //   // console.log("libraryId", libraryId)
+
+  //   // Assume you have the item ID of the template file
+  //   const templateItemId = "25"; // Replace with your template file ID in SharePoint
+
+  //   // Get the template file from SharePoint
+  //   const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, templateItemId);
+
+  //   // Create a new PizZip instance to read the binary content
+  //   const zip = new PizZip(templateFileContent);
+
+  //   // Create a new Docxtemplater instance
+  //   const doc = new Docxtemplater(zip, {
+  //     paragraphLoop: true,
+  //     linebreaks: true,
+  //   });
+
+  //   // Replace placeholders with actual values
+  //   doc.render({
+  //     User: data.title,
+  //     price: data.price,
+  //     details: data.details
+  //   });
+
+  //   // Generate the modified document
+  //   const buf = doc.getZip().generate({ type: 'nodebuffer' });
+
+  //   // Define the name for the generated document
+  //   const generatedFileName = `GeneratedDocument_${Date.now()}.docx`;
+
+  //   // Upload the generated document back to SharePoint
+  //   const uploadedFile = await uploadFileToSharePoint(accessToken, siteId, libraryId, generatedFileName, buf);
+
+  //   res.send({ message: 'Document created and uploaded successfully!', file: uploadedFile });
+  // } catch (error: any) {
+  //   res.status(500).send({ error: error.message });
+  // }
+})
 
 app.get("*", (req, res) => {
   res.send("API is hosted for Graph API");
