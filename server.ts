@@ -331,168 +331,6 @@ app.post("/data", async (req, res) => {
   }
 });
 
-app.post("/generate-document", async (req, res) => {
-  const data = req.body;
-  // console.log(req.body)
-  // const table = new Table({
-  //   rows: [
-  //     new TableRow({
-  //       children: [
-  //         new TableCell({
-  //           children: [new Paragraph("S.No")],
-  //         }),
-  //         new TableCell({
-  //           children: [new Paragraph("Name")],
-  //         }),
-  //         new TableCell({
-  //           children: [new Paragraph("Age")],
-  //         }),
-  //         new TableCell({
-  //           children: [new Paragraph("District")],
-  //         }),
-  //       ],
-  //     }),
-  //     ...data.map((item: any) =>
-  //       new TableRow({
-  //         children: [
-  //           new TableCell({
-  //             children: [new Paragraph(item.sNo.toString())],
-  //           }),
-  //           new TableCell({
-  //             children: [new Paragraph(item.name)],
-  //           }),
-  //           new TableCell({
-  //             children: [new Paragraph(item.age.toString())],
-  //           }),
-  //           new TableCell({
-  //             children: [new Paragraph(item.district)],
-  //           }),
-  //         ],
-  //       })
-  //     ),
-  //   ],
-  // });
-  // const table = new Table({
-  //   rows: [
-  //     // Header row with styling
-  //     new TableRow({
-  //       children: [
-  //         new TableCell({
-  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "S.No", bold: true })] })],
-  //           borders: {
-  //             top: { style: BorderStyle.SINGLE, size: 2 },
-  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
-  //             left: { style: BorderStyle.SINGLE, size: 2 },
-  //             right: { style: BorderStyle.SINGLE, size: 2 },
-  //           },
-  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //         }),
-  //         new TableCell({
-  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Name", bold: true })] })],
-  //           borders: {
-  //             top: { style: BorderStyle.SINGLE, size: 2 },
-  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
-  //             left: { style: BorderStyle.SINGLE, size: 2 },
-  //             right: { style: BorderStyle.SINGLE, size: 2 },
-  //           },
-  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //         }),
-  //         new TableCell({
-  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Age", bold: true })] })],
-  //           borders: {
-  //             top: { style: BorderStyle.SINGLE, size: 2 },
-  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
-  //             left: { style: BorderStyle.SINGLE, size: 2 },
-  //             right: { style: BorderStyle.SINGLE, size: 2 },
-  //           },
-  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //         }),
-  //         new TableCell({
-  //           children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "District", bold: true })] })],
-  //           borders: {
-  //             top: { style: BorderStyle.SINGLE, size: 2 },
-  //             bottom: { style: BorderStyle.SINGLE, size: 2 },
-  //             left: { style: BorderStyle.SINGLE, size: 2 },
-  //             right: { style: BorderStyle.SINGLE, size: 2 },
-  //           },
-  //           margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //         }),
-  //       ],
-  //     }),
-  //     // Data rows with styling
-  //     ...data.map((item: any) =>
-  //       new TableRow({
-  //         children: [
-  //           new TableCell({
-  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.sNo.toString() })] })],
-  //             borders: {
-  //               top: { style: BorderStyle.SINGLE, size: 1 },
-  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
-  //               left: { style: BorderStyle.SINGLE, size: 1 },
-  //               right: { style: BorderStyle.SINGLE, size: 1 },
-  //             },
-  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //           }),
-  //           new TableCell({
-  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.name })] })],
-  //             borders: {
-  //               top: { style: BorderStyle.SINGLE, size: 1 },
-  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
-  //               left: { style: BorderStyle.SINGLE, size: 1 },
-  //               right: { style: BorderStyle.SINGLE, size: 1 },
-  //             },
-  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //           }),
-  //           new TableCell({
-  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.age.toString() })] })],
-  //             borders: {
-  //               top: { style: BorderStyle.SINGLE, size: 1 },
-  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
-  //               left: { style: BorderStyle.SINGLE, size: 1 },
-  //               right: { style: BorderStyle.SINGLE, size: 1 },
-  //             },
-  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //           }),
-  //           new TableCell({
-  //             children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: item.district })] })],
-  //             borders: {
-  //               top: { style: BorderStyle.SINGLE, size: 1 },
-  //               bottom: { style: BorderStyle.SINGLE, size: 1 },
-  //               left: { style: BorderStyle.SINGLE, size: 1 },
-  //               right: { style: BorderStyle.SINGLE, size: 1 },
-  //             },
-  //             margins: { top: 100, bottom: 100, left: 100, right: 100 },
-  //           }),
-  //         ],
-  //       })
-  //     ),
-  //   ],
-  //   width: {
-  //     size: 10000,
-  //     type: WidthType.DXA,
-  //   },
-  // });
-
-  // const doc = new Document({
-  //   sections: [
-  //     {
-  //       children: [table],
-  //     },
-  //   ],
-  // });
-
-  // const buffer = await Packer.toBuffer(doc);
-  // Load the template document from the assets folder
-  const templatePath = path.join(__dirname, "Assets", "Templates.docx");
-
-
-  // // Set headers for file download
-  // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-  // res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
-  // res.send(buffer);
-
-});
-
 app.post("/generate-documents", async (req, res) => {
   const data = req.body;
   // Define the paths
@@ -532,18 +370,31 @@ app.post("/generate-documents", async (req, res) => {
 
 
   // // Step 1: Fetch the template file from SharePoint
-  // async function getTemplateFile(accessToken: string, siteId: string, libraryId: string, itemId: string) {
-  //   const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/items/${itemId}/content`;
+  // async function getTemplateFile(accessToken: any, siteId: any, libraryId: any, fileName: any) {
+  //   const listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items`;
 
   //   try {
-  //     const response = await axios.get(fileEndpoint, {
+  //     // Step 1: List items in the drive
+  //     const listResponse = await axios.get(listItemsEndpoint, {
+  //       headers: {
+  //         Authorization: `Bearer ${accessToken}`,
+  //       },
+  //     });
+
+  //     const items = listResponse.data.value;
+  //     const fileId = items[0].id;
+  //     const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/items/${fileId}/content`;
+
+  //     // Step 3: Fetch the item content
+  //     const fileResponse = await axios.get(fileEndpoint, {
   //       headers: {
   //         Authorization: `Bearer ${accessToken}`,
   //       },
   //       responseType: 'arraybuffer', // Important to get the file as binary data
   //     });
 
-  //     return response.data;
+  //     return Buffer.from(fileResponse.data);
+  //     // return items[0];
   //   } catch (error: any) {
   //     console.error("Error fetching template file:", error.response?.data || error.message);
   //     throw error;
@@ -577,11 +428,8 @@ app.post("/generate-documents", async (req, res) => {
   //   // console.log("siteId", siteId)
   //   // console.log("libraryId", libraryId)
 
-  //   // Assume you have the item ID of the template file
-  //   const templateItemId = "25"; // Replace with your template file ID in SharePoint
-
   //   // Get the template file from SharePoint
-  //   const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, templateItemId);
+  //   const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, "Templates.docx");
 
   //   // Create a new PizZip instance to read the binary content
   //   const zip = new PizZip(templateFileContent);
