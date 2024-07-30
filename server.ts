@@ -512,12 +512,12 @@ app.post("/generate-documents", async (req, res) => {
   });
 
   // Replace placeholders with actual values
-  doc.render({
-    User: data.title,
-    price: data.price,
-    details: data.details
-  });
-
+  // doc.render({
+  //   User: data.title,
+  //   price: data.price,
+  //   details: data.details
+  // });
+  doc.render(data)
   // Generate the modified document
   const buf = doc.getZip().generate({ type: 'nodebuffer' });
 
