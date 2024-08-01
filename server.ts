@@ -179,6 +179,29 @@ async function updateListItem(accessToken: any, siteId: any, listId: any, itemId
     throw error;
   }
 }
+async function getDriveId(accessToken: any, siteId: any) {
+  const driveEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives`;
+
+  try {
+    const response = await axios.get(driveEndpoint, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const drives = response.data.value;
+    if (!drives || drives.length === 0) {
+      throw new Error("No drives found in the specified site.");
+    }
+
+    return drives[0].id; // Return the ID of the first drive; adjust if necessary
+  } catch (error: any) {
+    console.error("Error fetching drive ID:", error.response?.data || error.message);
+    throw error;
+  }
+}
+
+
 
 let accessToken: any;
 let siteId;
@@ -334,42 +357,42 @@ app.post("/data", async (req, res) => {
 app.post("/generate-documents", async (req, res) => {
   const data = req.body;
   // Define the paths
-  const templatePath = path.join(__dirname, 'Assets', 'Templates.docx');
-  const outputPath = path.join(__dirname, 'Assets', 'output.docx');
+  // const templatePath = path.join(__dirname, 'Assets', 'Templates.docx');
+  // const outputPath = path.join(__dirname, 'Assets', 'output.docx');
 
-  // Load the docx file as binary content
-  const content = fs.readFileSync(templatePath, 'binary');
+  // // Load the docx file as binary content
+  // const content = fs.readFileSync(templatePath, 'binary');
 
-  // Create a new PizZip instance to read the binary content
-  const zip = new PizZip(content);
+  // // Create a new PizZip instance to read the binary content
+  // const zip = new PizZip(content);
 
-  // Create a new Docxtemplater instance
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-  });
-
-  // Replace placeholders with actual values
-  // doc.render({
-  //   User: data.title,
-  //   price: data.price,
-  //   details: data.details
+  // // Create a new Docxtemplater instance
+  // const doc = new Docxtemplater(zip, {
+  //   paragraphLoop: true,
+  //   linebreaks: true,
   // });
-  doc.render(data)
-  // Generate the modified document
-  const buf = doc.getZip().generate({ type: 'nodebuffer' });
 
-  // Save the modified document to a new file
-  fs.writeFileSync(outputPath, buf);
-  // Set headers for file download
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-  res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
-  res.send(buf);
+  // // Replace placeholders with actual values
+  // // doc.render({
+  // //   User: data.title,
+  // //   price: data.price,
+  // //   details: data.details
+  // // });
+  // doc.render(data)
+  // // Generate the modified document
+  // const buf = doc.getZip().generate({ type: 'nodebuffer' });
 
-  console.log('Document created successfully!');
+  // // Save the modified document to a new file
+  // fs.writeFileSync(outputPath, buf);
+  // // Set headers for file download
+  // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  // res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
+  // res.send(buf);
+
+  // console.log('Document created successfully!');
 
 
-  // // Step 1: Fetch the template file from SharePoint
+  // Step 1: Fetch the template file from SharePoint
   // async function getTemplateFile(accessToken: any, siteId: any, libraryId: any, fileName: any) {
   //   const listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items`;
 
@@ -400,66 +423,103 @@ app.post("/generate-documents", async (req, res) => {
   //     throw error;
   //   }
   // }
+  async function getTemplateFile(accessToken: any, siteId: any, libraryId: any, fileName: string) {
+    const listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items`;
 
-  // // Step 2: Upload the generated document back to SharePoint
-  // async function uploadFileToSharePoint(accessToken: string, siteId: string, libraryId: string, fileName: string, fileContent: Buffer) {
-  //   const uploadEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/root:/${fileName}:/content`;
+    try {
+      // Step 1: List items in the drive
+      const listResponse = await axios.get(listItemsEndpoint, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-  //   try {
-  //     const response = await axios.put(uploadEndpoint, fileContent, {
-  //       headers: {
-  //         Authorization: `Bearer ${accessToken}`,
-  //         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  //       },
-  //     });
+      console.log("List response:", listResponse.data);
 
-  //     return response.data;
-  //   } catch (error: any) {
-  //     console.error("Error uploading file to SharePoint:", error.response?.data || error.message);
-  //     throw error;
-  //   }
-  // }
+      const items = listResponse.data.value;
+      if (!items || items.length === 0) {
+        throw new Error("No items found in the specified library.");
+      }
 
-  // try {
-  //   accessToken = await getAccessToken();
-  //   siteId = await getSiteId(accessToken);
-  //   libraryId = await getLibraryId(accessToken, siteId);
-  //   // console.log("accessToken", accessToken)
-  //   // console.log("siteId", siteId)
-  //   // console.log("libraryId", libraryId)
+      const fileId = items[0].id;
+      const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items/${fileId}/driveItem/content`;
 
-  //   // Get the template file from SharePoint
-  //   const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, "Templates.docx");
+      // Step 3: Fetch the item content
+      const fileResponse = await axios.get(fileEndpoint, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        responseType: 'arraybuffer', // Important to get the file as binary data
+      });
 
-  //   // Create a new PizZip instance to read the binary content
-  //   const zip = new PizZip(templateFileContent);
+      console.log("File response:", fileResponse.data);
 
-  //   // Create a new Docxtemplater instance
-  //   const doc = new Docxtemplater(zip, {
-  //     paragraphLoop: true,
-  //     linebreaks: true,
-  //   });
+      return Buffer.from(fileResponse.data);
+    } catch (error: any) {
+      console.error("Error fetching template file:", error.response?.data || error.message);
+      throw error;
+    }
+  }
 
-  //   // Replace placeholders with actual values
-  //   doc.render({
-  //     User: data.title,
-  //     price: data.price,
-  //     details: data.details
-  //   });
+  // Step 2: Upload the generated document back to SharePoint
+  async function uploadFileToSharePoint(accessToken: any, siteId: any, fileName: any, fileContent: string) {
+    const libraryId = await getDriveId(accessToken, siteId);
 
-  //   // Generate the modified document
-  //   const buf = doc.getZip().generate({ type: 'nodebuffer' });
+    const uploadEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/root:/${fileName}:/content`;
 
-  //   // Define the name for the generated document
-  //   const generatedFileName = `GeneratedDocument_${Date.now()}.docx`;
+    try {
+      const response = await axios.put(uploadEndpoint, fileContent, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/octet-stream',
+        },
+      });
 
-  //   // Upload the generated document back to SharePoint
-  //   const uploadedFile = await uploadFileToSharePoint(accessToken, siteId, libraryId, generatedFileName, buf);
+      console.log(`File '${fileName}' uploaded successfully to SharePoint.`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error uploading file to SharePoint:", error.response?.data || error.message);
+      throw error;
+    }
+  }
 
-  //   res.send({ message: 'Document created and uploaded successfully!', file: uploadedFile });
-  // } catch (error: any) {
-  //   res.status(500).send({ error: error.message });
-  // }
+
+
+  try {
+    accessToken = await getAccessToken();
+    siteId = await getSiteId(accessToken);
+    libraryId = await getLibraryId(accessToken, siteId);
+    // console.log("accessToken", accessToken)
+    // console.log("siteId", siteId)
+    // console.log("libraryId", libraryId)
+
+    // Get the template file from SharePoint
+    const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, "Templates.docx");
+
+    // Create a new PizZip instance to read the binary content
+    const zip = new PizZip(templateFileContent);
+
+    // Create a new Docxtemplater instance
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    // Replace placeholders with actual values
+    doc.render(data);
+
+    // Generate the modified document
+    const buf: any = doc.getZip().generate({ type: 'nodebuffer' });
+    // Define the name for the generated document
+    const generatedFileName = `GeneratedDocument_${Date.now()}.docx`;
+
+    // Upload the generated document back to SharePoint
+    const uploadedFile = await uploadFileToSharePoint(accessToken, siteId, generatedFileName, buf);
+
+    res.send({ message: 'Document created and uploaded successfully!', file: uploadedFile });
+  } catch (error: any) {
+    res.status(500).send({ error: error.message });
+  }
 })
 
 app.get("*", (req, res) => {
