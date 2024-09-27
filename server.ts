@@ -9,7 +9,7 @@ import path from "path";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import mammoth from 'mammoth';
-
+const ImageModule = require('open-docxtemplater-image-module');
 
 dotenv.config();
 
@@ -58,16 +58,16 @@ const {
 async function getAccessToken() {
   const tokenEndpoint = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`;
   const params = new URLSearchParams();
-  // params.append("client_id", CLIENT_ID);
-  // params.append("scope", "https://graph.microsoft.com/.default");
-  // params.append("grant_type", "client_credentials");
-  // params.append("client_secret", CLIENT_SECRET);
   params.append("client_id", CLIENT_ID);
-  params.append("scope", "user.read openid profile offline_access");
-  params.append("username", UserNameVal);
-  params.append("password", PasswordVal);
-  params.append("grant_type", "password");
-  params.append("client_secret", CLIENT_SECRET)
+  params.append("scope", "https://graph.microsoft.com/.default");
+  params.append("grant_type", "client_credentials");
+  params.append("client_secret", CLIENT_SECRET);
+  // params.append("client_id", CLIENT_ID);
+  // params.append("scope", "user.read openid profile offline_access");
+  // params.append("username", UserNameVal);
+  // params.append("password", PasswordVal);
+  // params.append("grant_type", "password");
+  // params.append("client_secret", CLIENT_SECRET)
 
   try {
     const response = await axios.post(tokenEndpoint, params, {
@@ -135,7 +135,7 @@ async function getLibraryId(accessToken: string, siteId: string) {
 async function getAllListItems(accessToken: string, siteId: string, listId: string) {
   let listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`;
   let items: any[] = [];
-  const fields = ['Title', 'ConsumedCounts', 'PhoneNumber', 'TotalCounts', 'ID'];
+  const fields = ['Title', 'MaximumAllowedNotificationCount', 'ConsumedNotificationCount', 'CustomerWhatsAppNumber', 'IsServiceLive', 'ValidUpto', 'ID'];
 
   // Construct the expand and select query parameters for fields
   const expandQuery = fields.length > 0 ? `?$expand=fields($select=${fields.join(',')})` : '';
@@ -300,44 +300,44 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-app.post("/data", async (req, res) => {
+app.post("/whatsapp", async (req, res) => {
   // console.log("Details: ", req.body);
-  const { PhoneNumberID, from, to, token, MessageTemplate } = req.body
+  // console.log("Response: ", res);
+
+  const { PhoneNumberID, from, Accesstoken, to } = req.body
+
 
   accessToken = await getAccessToken();
   siteId = await getSiteId(accessToken);
   listId = await getListId(accessToken, siteId);
   ListItems = await getAllListItems(accessToken, siteId, listId)
   var MatchedItem = ListItems.filter((item) => {
-    return item.fields.PhoneNumber == from;
+    return item.fields.CustomerWhatsAppNumber == from;
   });
-
-  let TotalCounts = MatchedItem[0].fields.TotalCounts;
-  let ConsumedCounts = MatchedItem[0].fields.ConsumedCounts;
+  let TotalCounts = MatchedItem[0].fields.MaximumAllowedNotificationCount;
+  let ConsumedCounts = MatchedItem[0].fields.ConsumedNotificationCount;
   let ID = MatchedItem[0].fields.id;
-
-  if (ConsumedCounts < TotalCounts) {
+  let Status = MatchedItem[0].fields.IsServiceLive
+  // console.log(TotalCounts, ConsumedCounts, ID)
+  if ((ConsumedCounts < TotalCounts) && Status == true) {
     var settings = {
       "url": `https://graph.facebook.com/v19.0/${PhoneNumberID}/messages`,
       "method": "POST",
       "timeout": 0,
       "headers": {
-        "Authorization": `Bearer ${token}`,
+        "Authorization": `Bearer ${Accesstoken}`,
         "Content-Type": "application/json"
       },
-      "data": JSON.stringify({
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": `${to}`,
-        "type": "text",
-        "text": {
-          "body": `${MessageTemplate}`
-        }
-      }),
+      "data": req.body,
     };
-    const response = await axios(settings);
+    try {
+      const response = await axios(settings);
+      console.log("Response:", response.data); // Log the response data     
+    } catch (error: any) {
+      console.error(error.response ? error.response.data : error.message);
+    }
     const fieldsToUpdate = {
-      ConsumedCounts: ConsumedCounts + 1
+      ConsumedNotificationCount: ConsumedCounts + 1
     };
     updateListItem(accessToken, siteId, listId, ID, fieldsToUpdate)
       .then(updatedItem => {
@@ -346,10 +346,20 @@ app.post("/data", async (req, res) => {
       .catch(error => {
         console.error('Error:', error);
       });
-    res.send("Message sent");
+    // res.send("Message sent");
 
   } else {
-    res.send("Total Count exceeded");
+    const fieldsToUpdate = {
+      IsServiceLive: false
+    };
+    updateListItem(accessToken, siteId, listId, ID, fieldsToUpdate)
+      .then(updatedItem => {
+        // console.log('Updated Item:', updatedItem);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    res.send("You’ve reached the maximum limit for WhatsApp notification. Please contact your service provider for further assistance.");
     console.log("Total Count exceeded")
   }
 });
@@ -357,43 +367,67 @@ app.post("/data", async (req, res) => {
 app.post("/generate-documents", async (req, res) => {
   const data = req.body;
   // Define the paths
-  // const templatePath = path.join(__dirname, 'Assets', 'Templates.docx');
-  // const outputPath = path.join(__dirname, 'Assets', 'output.docx');
+  const templatePath = path.join(__dirname, 'Assets', 'Templates.docx');
+  const outputPath = path.join(__dirname, 'Assets', 'output.docx');
 
-  // // Load the docx file as binary content
-  // const content = fs.readFileSync(templatePath, 'binary');
+  // Load the docx file as binary content
+  const content = fs.readFileSync(templatePath, 'binary');
 
-  // // Create a new PizZip instance to read the binary content
-  // const zip = new PizZip(content);
+  // Create a new PizZip instance to read the binary content
+  const zip = new PizZip(content);
 
-  // // Create a new Docxtemplater instance
+
+
+  // Create a new Docxtemplater instance with the image module
   // const doc = new Docxtemplater(zip, {
   //   paragraphLoop: true,
   //   linebreaks: true,
   // });
 
-  // // Replace placeholders with actual values
-  // // doc.render({
-  // //   User: data.title,
-  // //   price: data.price,
-  // //   details: data.details
-  // // });
+
+  // Replace placeholders with actual values
+  // doc.render({
+  //   User: data.title,
+  //   price: data.price,
+  //   details: data.details
+  // });
+  const ImageModule = require("docxtemplater-image-module");
+
+  const imageOptions = {
+    getImage(tagValue: fs.PathOrFileDescriptor, tagName: any, meta: any) {
+      console.log({ tagValue, tagName, meta });
+      return fs.readFileSync(tagValue);
+    },
+    getSize(img: any) {
+      // it also is possible to return a size in centimeters, like this : return [ "2cm", "3cm" ];
+      return [150, 150];
+    },
+  };
+
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    modules: [new ImageModule(imageOptions)],
+  });
+  doc.render({ image: "./Assets/bmw.jpg" });
+
+
   // doc.render(data)
-  // // Generate the modified document
-  // const buf = doc.getZip().generate({ type: 'nodebuffer' });
+  // Generate the modified document
+  const buf = doc.getZip().generate({ type: 'nodebuffer' });
 
-  // // Save the modified document to a new file
-  // fs.writeFileSync(outputPath, buf);
-  // // Set headers for file download
-  // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-  // res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
-  // res.send(buf);
+  // Save the modified document to a new file
+  fs.writeFileSync(outputPath, buf);
+  // Set headers for file download
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  res.setHeader("Content-Disposition", "attachment; filename=GeneratedTemplate.docx");
+  res.send(buf);
 
-  // console.log('Document created successfully!');
+  console.log('Document created successfully!');
 
 
-  // Step 1: Fetch the template file from SharePoint
-  // async function getTemplateFile(accessToken: any, siteId: any, libraryId: any, fileName: any) {
+  // Step 1: Fetch the template file from SharePoint  
+  // async function getTemplateFile(accessToken: any, siteId: any, libraryId: any, fileName: string) {
   //   const listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items`;
 
   //   try {
@@ -404,9 +438,15 @@ app.post("/generate-documents", async (req, res) => {
   //       },
   //     });
 
+  //     // console.log("List response:", listResponse.data);
+
   //     const items = listResponse.data.value;
+  //     if (!items || items.length === 0) {
+  //       throw new Error("No items found in the specified library.");
+  //     }
+
   //     const fileId = items[0].id;
-  //     const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/items/${fileId}/content`;
+  //     const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items/${fileId}/driveItem/content`;
 
   //     // Step 3: Fetch the item content
   //     const fileResponse = await axios.get(fileEndpoint, {
@@ -416,110 +456,74 @@ app.post("/generate-documents", async (req, res) => {
   //       responseType: 'arraybuffer', // Important to get the file as binary data
   //     });
 
+  //     // console.log("File response:", fileResponse.data);
+
   //     return Buffer.from(fileResponse.data);
-  //     // return items[0];
   //   } catch (error: any) {
   //     console.error("Error fetching template file:", error.response?.data || error.message);
   //     throw error;
   //   }
   // }
-  async function getTemplateFile(accessToken: any, siteId: any, libraryId: any, fileName: string) {
-    const listItemsEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items`;
 
-    try {
-      // Step 1: List items in the drive
-      const listResponse = await axios.get(listItemsEndpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+  // // Step 2: Upload the generated document back to SharePoint
+  // async function uploadFileToSharePoint(accessToken: any, siteId: any, fileName: any, fileContent: string) {
+  //   const libraryId = await getDriveId(accessToken, siteId);
 
-      console.log("List response:", listResponse.data);
+  //   const uploadEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/root:/${fileName}:/content`;
 
-      const items = listResponse.data.value;
-      if (!items || items.length === 0) {
-        throw new Error("No items found in the specified library.");
-      }
+  //   try {
+  //     const response = await axios.put(uploadEndpoint, fileContent, {
+  //       headers: {
+  //         Authorization: `Bearer ${accessToken}`,
+  //         'Content-Type': 'application/octet-stream',
+  //       },
+  //     });
 
-      const fileId = items[0].id;
-      const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${libraryId}/items/${fileId}/driveItem/content`;
-
-      // Step 3: Fetch the item content
-      const fileResponse = await axios.get(fileEndpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        responseType: 'arraybuffer', // Important to get the file as binary data
-      });
-
-      console.log("File response:", fileResponse.data);
-
-      return Buffer.from(fileResponse.data);
-    } catch (error: any) {
-      console.error("Error fetching template file:", error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  // Step 2: Upload the generated document back to SharePoint
-  async function uploadFileToSharePoint(accessToken: any, siteId: any, fileName: any, fileContent: string) {
-    const libraryId = await getDriveId(accessToken, siteId);
-
-    const uploadEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${libraryId}/root:/${fileName}:/content`;
-
-    try {
-      const response = await axios.put(uploadEndpoint, fileContent, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/octet-stream',
-        },
-      });
-
-      console.log(`File '${fileName}' uploaded successfully to SharePoint.`);
-      return response.data;
-    } catch (error: any) {
-      console.error("Error uploading file to SharePoint:", error.response?.data || error.message);
-      throw error;
-    }
-  }
+  //     console.log(`File '${fileName}' uploaded successfully to SharePoint.`);
+  //     return response.data;
+  //   } catch (error: any) {
+  //     console.error("Error uploading file to SharePoint:", error.response?.data || error.message);
+  //     throw error;
+  //   }
+  // }
 
 
 
-  try {
-    accessToken = await getAccessToken();
-    siteId = await getSiteId(accessToken);
-    libraryId = await getLibraryId(accessToken, siteId);
-    // console.log("accessToken", accessToken)
-    // console.log("siteId", siteId)
-    // console.log("libraryId", libraryId)
+  // try {
+  //   accessToken = await getAccessToken();
+  //   siteId = await getSiteId(accessToken);
+  //   libraryId = await getLibraryId(accessToken, siteId);
+  //   // console.log("accessToken", accessToken)
+  //   // console.log("siteId", siteId)
+  //   // console.log("libraryId", libraryId)
 
-    // Get the template file from SharePoint
-    const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, "Templates.docx");
+  //   // Get the template file from SharePoint
+  //   const templateFileContent = await getTemplateFile(accessToken, siteId, libraryId, "Templates.docx");
 
-    // Create a new PizZip instance to read the binary content
-    const zip = new PizZip(templateFileContent);
+  //   // Create a new PizZip instance to read the binary content
+  //   const zip = new PizZip(templateFileContent);
 
-    // Create a new Docxtemplater instance
-    const doc = new Docxtemplater(zip, {
-      paragraphLoop: true,
-      linebreaks: true,
-    });
+  //   // Create a new Docxtemplater instance
+  //   const doc = new Docxtemplater(zip, {
+  //     paragraphLoop: true,
+  //     linebreaks: true,
+  //   });
 
-    // Replace placeholders with actual values
-    doc.render(data);
+  //   // Replace placeholders with actual values
+  //   doc.render(data);
 
-    // Generate the modified document
-    const buf: any = doc.getZip().generate({ type: 'nodebuffer' });
-    // Define the name for the generated document
-    const generatedFileName = `GeneratedDocument_${Date.now()}.docx`;
+  //   // Generate the modified document
+  //   const buf: any = doc.getZip().generate({ type: 'nodebuffer' });
+  //   // Define the name for the generated document
+  //   const generatedFileName = `GeneratedDocument_${Date.now()}.docx`;
 
-    // Upload the generated document back to SharePoint
-    const uploadedFile = await uploadFileToSharePoint(accessToken, siteId, generatedFileName, buf);
+  //   // Upload the generated document back to SharePoint
+  //   const uploadedFile = await uploadFileToSharePoint(accessToken, siteId, generatedFileName, buf);
 
-    res.send({ message: 'Document created and uploaded successfully!', file: uploadedFile });
-  } catch (error: any) {
-    res.status(500).send({ error: error.message });
-  }
+  //   res.send({ message: 'Document created and uploaded successfully!', file: uploadedFile });
+  // } catch (error: any) {
+  //   res.status(500).send({ error: error.message });
+  // }
 })
 
 app.get("*", (req, res) => {
