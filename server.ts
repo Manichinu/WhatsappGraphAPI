@@ -10,6 +10,9 @@ import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import mammoth from 'mammoth';
 const ImageModule = require('open-docxtemplater-image-module');
+import 'isomorphic-fetch';
+import { Client } from '@microsoft/microsoft-graph-client';
+
 
 dotenv.config();
 
@@ -18,14 +21,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use(bodyParser.json());
-
-
-// const data = [
-//   { sNo: 1, name: "John Doe", age: 30, district: "New York" },
-//   { sNo: 2, name: "Jane Smith", age: 25, district: "Los Angeles" }
-// ];
-
-// module.exports = data;
 
 interface EnvVariables {
   WEBHOOK_VERIFY_TOKEN: string;
@@ -54,6 +49,42 @@ const {
   CLIENT_SECRET,
   LIBRARY_NAME
 } = process.env as unknown as EnvVariables;
+
+
+// Step 1: Set your required parameters
+const GRAPH_API_URL = 'https://graph.microsoft.com/v1.0';
+const WEBHOOK_URL = 'https://webhook.remodigital.in/notifications';  // Your webhook URL
+let ACCESS_TOKEN_For_Email = '';  // Your OAuth access token
+
+// Step 2: Define the subscription body
+const subscriptionBody = {
+  changeType: 'created',  // Trigger when a new email is created
+  notificationUrl: WEBHOOK_URL,  // Your webhook endpoint
+  resource: '/users/siva@782yjz.onmicrosoft.com/messages',  // Subscription to new emails (use /users/{id}/messages for specific users)
+  expirationDateTime: '2024-12-30T23:59:59.0000000Z',  // Set an expiration time for the subscription
+  // clientState: 'your-client-state',  // Optional, custom state to validate the webhook response
+};
+async function createSubscription() {
+  try {
+    ACCESS_TOKEN_For_Email = await getAccessToken();
+    console.log(ACCESS_TOKEN_For_Email)
+    const response = await axios.post(
+      `${GRAPH_API_URL}/subscriptions`,
+      subscriptionBody,
+      {
+        headers: {
+          Authorization: `Bearer ${ACCESS_TOKEN_For_Email}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Subscription created successfully:', response.data);
+  } catch (error: any) {
+    console.error('Error creating subscription:', error.response ? error.response.data : error.message);
+  }
+}
+createSubscription();
 
 async function getAccessToken() {
   const tokenEndpoint = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`;
@@ -200,8 +231,73 @@ async function getDriveId(accessToken: any, siteId: any) {
     throw error;
   }
 }
+app.post("/test", async (req, res) => {
+  var body = req.body
 
+  // Process the actual change notification (new email)
+  const changeNotification = body.value[0]; // Assuming it's an array, so we access the first element
+  const resourceData = changeNotification.resourceData;
 
+  // Manually extracting the userId and messageId from the payload
+  const resourcePath = changeNotification.resource; // "Users/48346217-e4c8-4c4f-b783-3e3fce527d3f/Messages/AAMkADg4OTQxZGMwLTM1M2YtNDg5Ny05YjczLThhNmQ0MmYxNTQ5MwBGAAAAAAC3t5WqMQWDSpbtKLt6yo4bBwC7F3pBwatPTq99X0VNUbmHAAAAAAEMAAC7F3pBwatPTq99X0VNUbmHAALaw9ywAAA="
+  const userId = resourcePath.split('/')[1]; // "48346217-e4c8-4c4f-b783-3e3fce527d3f"
+  const messageId = resourceData.id; // "AAMkADg4OTQxZGMwLTM1M2YtNDg5Ny05YjczLThhNmQ0MmYxNTQ5MwBGAAAAAAC3t5WqMQWDSpbtKLt6yo4bBwC7F3pBwatPTq99X0VNUbmHAAAAAAEMAAC7F3pBwatPTq99X0VNUbmHAALaw9ywAAA="
+
+  console.log('Extracted userId:', userId);
+  console.log('Extracted messageId:', messageId);
+
+  // Fetch the full email content using Microsoft Graph API
+  try {
+    const accessToken = await getAccessToken(); // Ensure this function returns a valid token
+
+    // Construct the API URL to fetch the email message
+    const emailResponse = await axios.get(`https://graph.microsoft.com/v1.0/users/${userId}/messages/${messageId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    // Extract relevant email information from the response
+    const emailContent = {
+      messageId: emailResponse.data.id,
+      subject: emailResponse.data.subject,
+      sender: emailResponse.data.sender,
+      receivedDateTime: emailResponse.data.receivedDateTime,
+      bodyPreview: emailResponse.data.bodyPreview,
+      body: emailResponse.data.body // Depending on how you want the body (text or HTML)
+    };
+
+    console.log('Full email content:', emailContent);
+    addCategoryToMessage(accessToken, userId, messageId, "Original");
+
+  } catch (error) {
+    console.error('Error retrieving email content or sending to Logic App:', error);
+  }
+
+  // Respond with status 200 OK to acknowledge receipt of the notification
+})
+
+// Function to add category to an email message
+async function addCategoryToMessage(accessToken: any, userId: any, messageId: any, category: any) {
+  const url = `https://graph.microsoft.com/v1.0/users/${userId}/messages/${messageId}`;
+
+  try {
+    const response = await axios.patch(url, {
+      categories: [category], // Assign the category to the email
+    }, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error adding category to message:', error.response?.data || error.message);
+    throw error;
+  }
+}
 
 let accessToken: any;
 let siteId;
@@ -363,7 +459,45 @@ app.post("/whatsapp", async (req, res) => {
     console.log("Total Count exceeded")
   }
 });
+app.post("/outlook", async (req, res) => {
+  const fetch = require("node-fetch");
+  accessToken = await getAccessToken();
+  console.log(accessToken)
+  var messageId = "CAHHnKiijqGP4n9HTDvm6wREwRsNO1n+5BytfX0eZCSWctyEGsQ@mail.gmail.com"
+  var category = "Original"
+  const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}`;
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      "categories": [category] // Example: "Phishing", "Legitimate"
+    })
+  });
+  if (response.ok) {
+    console.log("Email categorized successfully");
+  } else {
+    console.error("Error categorizing email", await response.text());
+  }
 
+})
+app.post('/notifications', (req, res) => {
+  console.log('Received notification:', req.body);
+
+  // Check if it's a validation request (required for subscription creation)
+  if (req.query.validationToken) {
+    return res.status(200).send(req.query.validationToken);  // Respond to validation request
+  }
+
+  // Process the actual change notification (new email)
+  const changeNotification = req.body.value;
+  console.log('Change notification received:', changeNotification);
+
+  // Respond with status 200 OK to acknowledge receipt
+  res.sendStatus(200);
+});
 app.post("/generate-documents", async (req, res) => {
   const data = req.body;
   // Define the paths
