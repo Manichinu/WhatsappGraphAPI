@@ -5,7 +5,7 @@
   "main": "server.ts",
   "type": "commonjs",
   "scripts": {
-    "start": "nodemon server.ts",
+    "start": "nodemon email.ts",
     "build": "tsc"
   },
   "author": "WhatsApp Team",
@@ -16,7 +16,7 @@
     "@pnp/common": "^2.15.0",
     "@pnp/sp": "^4.2.0",
     "axios": "^1.6.7",
-    "body-parser": "^1.20.2",
+    "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "docx": "^8.5.0",
     "docxtemplater": "^3.49.1",
@@ -26,6 +26,7 @@
     "fs": "^0.0.2",
     "isomorphic-fetch": "^3.0.0",
     "mammoth": "^1.8.0",
+    "msal": "^1.4.18",
     "nodemon": "^3.1.1",
     "open-docxtemplater-image-module": "^1.0.3",
     "path": "^0.12.7",

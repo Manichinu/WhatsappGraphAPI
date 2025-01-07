@@ -13,7 +13,6 @@ const ImageModule = require('open-docxtemplater-image-module');
 import 'isomorphic-fetch';
 import { Client } from '@microsoft/microsoft-graph-client';
 
-
 dotenv.config();
 
 const app = express();
@@ -21,6 +20,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 interface EnvVariables {
   WEBHOOK_VERIFY_TOKEN: string;
@@ -60,14 +60,21 @@ let ACCESS_TOKEN_For_Email = '';  // Your OAuth access token
 const subscriptionBody = {
   changeType: 'created',  // Trigger when a new email is created
   notificationUrl: WEBHOOK_URL,  // Your webhook endpoint
-  resource: '/users/siva@782yjz.onmicrosoft.com/messages',  // Subscription to new emails (use /users/{id}/messages for specific users)
-  expirationDateTime: '2024-12-30T23:59:59.0000000Z',  // Set an expiration time for the subscription
+  resource: '/users/mani2@6z0l7v.onmicrosoft.com/messages',  // Subscription to new emails (use /users/{id}/messages for specific users)
+  expirationDateTime: '2025-01-10T23:59:59.0000000Z',  // Set an expiration time for the subscription
   // clientState: 'your-client-state',  // Optional, custom state to validate the webhook response
 };
 async function createSubscription() {
   try {
     ACCESS_TOKEN_For_Email = await getAccessToken();
     console.log(ACCESS_TOKEN_For_Email)
+    // fetchEmails(ACCESS_TOKEN_For_Email)
+    // const userDetails = await axios.get(`${GRAPH_API_URL}/users/ea40397d-6d24-4de0-9acd-07f60abe667d`, {
+    //   headers: {
+    //     Authorization: `Bearer ${ACCESS_TOKEN_For_Email}`,
+    //   },
+    // });
+    // console.log(userDetails.data);
     const response = await axios.post(
       `${GRAPH_API_URL}/subscriptions`,
       subscriptionBody,
@@ -80,11 +87,45 @@ async function createSubscription() {
     );
 
     console.log('Subscription created successfully:', response.data);
+    // const responses = await axios.get(`${GRAPH_API_URL}/subscriptions`, {
+    //   headers: {
+    //     Authorization: `Bearer ${ACCESS_TOKEN_For_Email}`,
+    //   },
+    // });
+
+    // console.log('Subscriptions:', responses.data);
+    // // Iterate through each subscription to get the user's email
+    // for (const subscription of responses.data.value) {
+    //   const userId = subscription.resource.split('/')[1];  // Extract userId from the resource path
+
+    //   // Fetch the user details using userId
+    //   const userResponse = await axios.get(`${GRAPH_API_URL}/users/${userId}`, {
+    //     headers: {
+    //       Authorization: `Bearer ${ACCESS_TOKEN_For_Email}`,
+    //     },
+    //   });
+    //   console.log("Response", userResponse.data)
+    //   // Extract and log the email
+    //   const userEmail = userResponse.data.mail || userResponse.data.userPrincipalName;
+    //   console.log(`User ID: ${userId}, Email: ${userEmail}`);
+    // }
   } catch (error: any) {
     console.error('Error creating subscription:', error.response ? error.response.data : error.message);
   }
 }
-createSubscription();
+// createSubscription();
+async function fetchEmails(accessToken: any) {
+  try {
+    const response = await axios.get(`${GRAPH_API_URL}/users/e03ef8d5-a78b-4f3f-946d-1191dafbd3c0/messages`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    console.log("Emails:", response.data);
+  } catch (error: any) {
+    console.error("Error fetching emails:", error.response?.data || error.message);
+  }
+}
 
 async function getAccessToken() {
   const tokenEndpoint = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`;
@@ -248,7 +289,7 @@ app.post("/test", async (req, res) => {
 
   // Fetch the full email content using Microsoft Graph API
   try {
-    const accessToken = await getAccessToken(); // Ensure this function returns a valid token
+    const accessToken = "eyJ0eXAiOiJKV1QiLCJub25jZSI6IkNqeFZHakVWM3I4c0pXbWN2bnJ1bFlVWVBSeDlKQlFoS3pYRXNVc3JoY0EiLCJhbGciOiJSUzI1NiIsIng1dCI6InoxcnNZSEhKOS04bWdndDRIc1p1OEJLa0JQdyIsImtpZCI6InoxcnNZSEhKOS04bWdndDRIc1p1OEJLa0JQdyJ9.eyJhdWQiOiIwMDAwMDAwMy0wMDAwLTAwMDAtYzAwMC0wMDAwMDAwMDAwMDAiLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC81MzQ2M2E0Zi0wYzFkLTQ2YmMtODkwZS1kNmVlZWY3ODU3MzAvIiwiaWF0IjoxNzM2MTM5MDQ5LCJuYmYiOjE3MzYxMzkwNDksImV4cCI6MTczNjE0NDM5OCwiYWNjdCI6MCwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhZQUFBQUdKcFJlRTc5UW1FNTBDTUszQVhSb0UvMzBYVGE5RmQ0d1pINUZiRlA1YXdzQ0p2Z202bTdFc1RZZC9GV1B0bVJZZGNnckp5a1Yvc1dkZVIyYTF6MnloM0xUTTEvcytkaXFUL0oxaGI1YVJJPSIsImFtciI6WyJwd2QiLCJtZmEiXSwiYXBwX2Rpc3BsYXluYW1lIjoiV2hhdHNhcHAgYXBpIGNoZWNrIiwiYXBwaWQiOiIwMjFmNTNmOS01ZjU4LTRkNWUtYjYxNS00ZjVkODk5NDE0MTMiLCJhcHBpZGFjciI6IjEiLCJmYW1pbHlfbmFtZSI6IjIiLCJnaXZlbl9uYW1lIjoibWFuaSIsImlkdHlwIjoidXNlciIsImlwYWRkciI6IjI0MDk6NDBmNDozMDEyOjdkMzU6MjE5MTo4YTMzOjc4NGQ6MTliZCIsIm5hbWUiOiJtYW5pIDIiLCJvaWQiOiJmYmE1ZTk1Ny05Y2ZkLTQ4OTQtODg2Yi02ZDY3YzkxMmViZjIiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDFFRjAyRkJBQyIsInJoIjoiMS5BWFlBVHpwR1V4ME12RWFKRHRidTczaFhNQU1BQUFBQUFBQUF3QUFBQUFBQUFBQzBBSWQyQUEuIiwic2NwIjoiTWFpbC5SZWFkV3JpdGUgTWFpbGJveFNldHRpbmdzLlJlYWRXcml0ZSBvcGVuaWQgcHJvZmlsZSBVc2VyLlJlYWQgZW1haWwiLCJzaWduaW5fc3RhdGUiOlsia21zaSJdLCJzdWIiOiJFV3VFYWhiaHpIbmdHQ1RUUFNuSW5VSjB1c2lBVEM5Nkd6NmJmbjRYWlhrIiwidGVuYW50X3JlZ2lvbl9zY29wZSI6Ik5BIiwidGlkIjoiNTM0NjNhNGYtMGMxZC00NmJjLTg5MGUtZDZlZWVmNzg1NzMwIiwidW5pcXVlX25hbWUiOiJtYW5pMkA2ejBsN3Yub25taWNyb3NvZnQuY29tIiwidXBuIjoibWFuaTJANnowbDd2Lm9ubWljcm9zb2Z0LmNvbSIsInV0aSI6ImN0MkNIbkQ4OTBLbHpTQVItbWNWQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbIjYyZTkwMzk0LTY5ZjUtNDIzNy05MTkwLTAxMjE3NzE0NWUxMCIsImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfZnRkIjoiYUpUeGdsTDV5cUhDY2E5REhiazlTWFNFS1ZjVjVINXlMZXF2dU5ySEY0QSIsInhtc19pZHJlbCI6IjEgMTIiLCJ4bXNfc3QiOnsic3ViIjoiZ28wa3JDUHM1azgyYzJaNmhRNzJPcE94N3pQcmphVS1NV181Z1p6cG5ZVSJ9LCJ4bXNfdGNkdCI6MTY0Njg3OTI5MX0.Bzt76wAyB3ZPQUwwLrLLPZ2XYPGDasRmxPpgrojVr9mA88IayShc-B_HxIrEGxuml5kg5XYztudS7PYXTWo1VcZRB8UMeahHjjhqqPBqHY81iGXTGjUTOltkw55RYydRghXTObCuL_Wf6KP9Q5Z78AeRjnHnfoA1ZoGWQU1X4auYT5F4nU2sxL6t4tjOH03LoxrbJAHC9DXLakTLOi4No0_hLwQhmQ6ClLUUon51Z-kmOiux2cULOHyZNVrLfATsN0y36X-nyesxdgg4oLubU5sRS0JiE868N92djBBL9yoFkOpyR7g38B_10OpMig1pF9sGccZUjkuZ5QE7S4CbqA"; // Ensure this function returns a valid token
 
     // Construct the API URL to fetch the email message
     const emailResponse = await axios.get(`https://graph.microsoft.com/v1.0/users/${userId}/messages/${messageId}`, {
@@ -658,6 +699,163 @@ app.post("/generate-documents", async (req, res) => {
   // } catch (error: any) {
   //   res.status(500).send({ error: error.message });
   // }
+})
+// Endpoint to handle authentication response
+// app.post('/auth/callback', (req, res) => {
+//   const { accessToken, userEmail } = req.body;
+
+//   if (!accessToken || !userEmail) {
+//     return res.status(400).json({ error: "Access token or user email is missing." });
+//   }
+
+//   console.log(`Access token received: ${accessToken}`);
+//   console.log(`User email: ${userEmail}`);
+
+//   // Optionally fetch user details or emails using Microsoft Graph
+//   getUserEmails(accessToken)
+//     .then((emails) => {
+//       console.log('User emails:', emails);
+//       res.status(200).json({ message: "Data fetched successfully", emails });
+//     })
+//     .catch((error) => {
+//       console.error("Error fetching emails:", error);
+//       res.status(500).json({ error: "Failed to fetch emails." });
+//     });
+// });
+
+// // Function to fetch emails using Microsoft Graph
+// async function getUserEmails(accessToken: any) {
+//   const client = Client.init({
+//     authProvider: (done) => {
+//       done(null, accessToken);
+//     },
+//   });
+
+//   const emails = await client.api('/me/messages').get();
+//   return emails.value;
+// }
+app.get("/auth/callback", async (req: any, res: any) => {
+  const { code } = req.query;
+  console.log(req)
+
+  if (!code) {
+    return res.status(400).send("Authorization code is missing now.");
+  }
+
+  try {
+    // Exchange authorization code for access token
+    const tokenEndpoint = `https://login.microsoftonline.com/common/oauth2/v2.0/token`;
+    const params = new URLSearchParams();
+    params.append("client_id", CLIENT_ID);
+    params.append("scope", "Mail.ReadWrite");
+    params.append("code", code);
+    params.append("redirect_uri", "https://webhook.remodigital.in/auth/callback");
+    params.append("grant_type", "authorization_code");
+    params.append("client_secret", CLIENT_SECRET);
+
+    const tokenResponse = await axios.post(tokenEndpoint, params, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    const { access_token } = tokenResponse.data;
+
+    if (!access_token) {
+      return res.status(500).send("Failed to obtain access token.");
+    }
+
+    console.log(`Access token received: ${access_token}`);
+
+    // Optional: Use the access token to get user details (e.g., email)
+    const userResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    const userEmail = userResponse.data.mail || userResponse.data.userPrincipalName;
+    console.log(`User email: ${userEmail}`);
+
+    // Create subscription
+    const subscription = await createEmailSubscription(access_token);
+
+    res.status(200).json({
+      message: "Subscription created successfully",
+      subscription,
+    });
+    // Send the email content to the Azure Logic App
+    const postItem = {
+      url: "https://prod-37.westus.logic.azure.com:443/workflows/7263399fc246463e9f7cadf1209f40b8/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=aR2w_zRDafMqw5ucMCrK4jREfRkHDJKhG5aoBz_VssU",
+      method: "POST",
+      timeout: 0,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        "Accept": "application/json; odata=nometadata",
+        "Content-Type": "application/json; odata=nometadata"
+      },
+      data: {
+        Message: subscription,
+
+      }
+    };
+
+    const response = await axios(postItem);
+    console.log('Response from Azure Logic App:', response.data);
+  } catch (error: any) {
+    console.error("Error handling callback:", error.response?.data || error.message);
+    res.status(500).send("Failed to handle callback.");
+  }
+});
+
+// Function to create an email subscription
+async function createEmailSubscription(accessToken: any) {
+  const client = Client.init({
+    authProvider: (done) => {
+      done(null, accessToken);
+    },
+  });
+
+  const subscription = await client.api('/subscriptions').post({
+    changeType: 'created', // Events to track
+    notificationUrl: 'https://webhook.remodigital.in/notifications', // Your endpoint to receive notifications
+    resource: '/me/messages', // Resource to track
+    expirationDateTime: '2024-12-30T23:59:59.0000000Z', // Expiry time (max 1 hour for messages)
+    // clientState: 'secretClientValue', // Optional: Ensures the notification is from Microsoft
+  });
+
+  return subscription;
+}
+app.post("/usercreation", async (req: any, res: any) => {
+  ACCESS_TOKEN_For_Email = await getAccessToken();
+  const EXTERNAL_USER_EMAIL = 'mani2@6z0l7v.onmicrosoft.com';
+  try {
+    const body = {
+      accountEnabled: true, // Enables the account immediately
+      displayName: 'Manikandan', // Display name of the user
+      mailNickname: 'Manikandan', // Unique nickname for the user
+      userPrincipalName: EXTERNAL_USER_EMAIL.replace('@', '_') + `#EXT#@ilgtech.onmicrosoft.com`, // Required for guest users
+      mail: "mani2@6z0l7v.onmicrosoft.com", // Email address
+      userType: 'Member', // Specifies this is a guest user
+      passwordProfile: {
+        password: 'Temp@12345', // Temporary password
+        forceChangePasswordNextSignIn: false, // No password change required
+      },
+    };
+
+    const response = await axios.post(`${GRAPH_API_URL}/users`, body, {
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN_For_Email}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('External user created successfully:', response.data);
+
+
+  } catch (error: any) {
+    console.error('Error creating external user:', error.response?.data || error.message);
+  }
 })
 
 app.get("*", (req, res) => {
