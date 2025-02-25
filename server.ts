@@ -60,8 +60,8 @@ let ACCESS_TOKEN_For_Email = '';  // Your OAuth access token
 const subscriptionBody = {
   changeType: 'created',  // Trigger when a new email is created
   notificationUrl: WEBHOOK_URL,  // Your webhook endpoint
-  resource: '/users/mani2@6z0l7v.onmicrosoft.com/messages',  // Subscription to new emails (use /users/{id}/messages for specific users)
-  expirationDateTime: '2025-01-10T23:59:59.0000000Z',  // Set an expiration time for the subscription
+  resource: '/users/siva@782yjz.onmicrosoft.com/messages',  // Subscription to new emails (use /users/{id}/messages for specific users)
+  expirationDateTime: '2025-03-01T23:59:59.0000000Z',  // Set an expiration time for the subscription
   // clientState: 'your-client-state',  // Optional, custom state to validate the webhook response
 };
 async function createSubscription() {
@@ -113,7 +113,7 @@ async function createSubscription() {
     console.error('Error creating subscription:', error.response ? error.response.data : error.message);
   }
 }
-// createSubscription();
+createSubscription();
 async function fetchEmails(accessToken: any) {
   try {
     const response = await axios.get(`${GRAPH_API_URL}/users/e03ef8d5-a78b-4f3f-946d-1191dafbd3c0/messages`, {
@@ -828,15 +828,15 @@ async function createEmailSubscription(accessToken: any) {
 }
 app.post("/usercreation", async (req: any, res: any) => {
   ACCESS_TOKEN_For_Email = await getAccessToken();
-  const EXTERNAL_USER_EMAIL = 'mani2@6z0l7v.onmicrosoft.com';
+  const EXTERNAL_USER_EMAIL = 'eservices@tmax.in';
   try {
     const body = {
       accountEnabled: true, // Enables the account immediately
-      displayName: 'Manikandan', // Display name of the user
-      mailNickname: 'Manikandan', // Unique nickname for the user
+      displayName: 'Eservice', // Display name of the user
+      mailNickname: 'Eservice', // Unique nickname for the user
       userPrincipalName: EXTERNAL_USER_EMAIL.replace('@', '_') + `#EXT#@ilgtech.onmicrosoft.com`, // Required for guest users
-      mail: "mani2@6z0l7v.onmicrosoft.com", // Email address
-      userType: 'Member', // Specifies this is a guest user
+      mail: "eservices@tmax.in", // Email address
+      userType: 'Guest', // Specifies this is a guest user
       passwordProfile: {
         password: 'Temp@12345', // Temporary password
         forceChangePasswordNextSignIn: false, // No password change required

@@ -19,11 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 console.log("test")
 let port = 80;
 
-// // Replace with your subscription ID
-// const subscriptionId = '9d977e16-8d97-42e6-b399-0e3747179416';
 
-// // Replace with your access token
-// const accessToken = 'eyJ0eXAiOiJKV1QiLCJub25jZSI6IjlUaXAwSWFhSlp1UGlQZ1R3WXkwdlhmeHVLRGFUSWg2S2R0ZEhYdmRybm8iLCJhbGciOiJSUzI1NiIsIng1dCI6InoxcnNZSEhKOS04bWdndDRIc1p1OEJLa0JQdyIsImtpZCI6InoxcnNZSEhKOS04bWdndDRIc1p1OEJLa0JQdyJ9.eyJhdWQiOiIwMDAwMDAwMy0wMDAwLTAwMDAtYzAwMC0wMDAwMDAwMDAwMDAiLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC81MzQ2M2E0Zi0wYzFkLTQ2YmMtODkwZS1kNmVlZWY3ODU3MzAvIiwiaWF0IjoxNzM1ODg3NDEyLCJuYmYiOjE3MzU4ODc0MTIsImV4cCI6MTczNTg5MTU3MywiYWNjdCI6MCwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhZQUFBQWNBTlI5ek5taEozT0ZPUUhFTFZWRStUcjBVNW1mRk4rUUIycUg3WGVvc3ZlU0k4c1ZQUkt3RWtOODVPMVB5OXVxS1QxeTlkTTZWcWJlQ2QwdWpadFAvMlpyU2NOd3ZKRmhlWjVJY2grcThFPSIsImFtciI6WyJwd2QiLCJtZmEiXSwiYXBwX2Rpc3BsYXluYW1lIjoiV2hhdHNhcHAgYXBpIGNoZWNrIiwiYXBwaWQiOiIwMjFmNTNmOS01ZjU4LTRkNWUtYjYxNS00ZjVkODk5NDE0MTMiLCJhcHBpZGFjciI6IjEiLCJmYW1pbHlfbmFtZSI6IjIiLCJnaXZlbl9uYW1lIjoibWFuaSIsImlkdHlwIjoidXNlciIsImlwYWRkciI6IjI0MDk6NDBmNDozMDU5OmIzOTg6ZDg4Mjo3Yjg0OmM1NTc6YTVhNyIsIm5hbWUiOiJtYW5pIDIiLCJvaWQiOiJmYmE1ZTk1Ny05Y2ZkLTQ4OTQtODg2Yi02ZDY3YzkxMmViZjIiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDFFRjAyRkJBQyIsInJoIjoiMS5BWFlBVHpwR1V4ME12RWFKRHRidTczaFhNQU1BQUFBQUFBQUF3QUFBQUFBQUFBQzBBSWQyQUEuIiwic2NwIjoiTWFpbC5SZWFkV3JpdGUgTWFpbGJveFNldHRpbmdzLlJlYWRXcml0ZSBvcGVuaWQgcHJvZmlsZSBVc2VyLlJlYWQgZW1haWwiLCJzaWduaW5fc3RhdGUiOlsia21zaSJdLCJzdWIiOiJFV3VFYWhiaHpIbmdHQ1RUUFNuSW5VSjB1c2lBVEM5Nkd6NmJmbjRYWlhrIiwidGVuYW50X3JlZ2lvbl9zY29wZSI6Ik5BIiwidGlkIjoiNTM0NjNhNGYtMGMxZC00NmJjLTg5MGUtZDZlZWVmNzg1NzMwIiwidW5pcXVlX25hbWUiOiJtYW5pMkA2ejBsN3Yub25taWNyb3NvZnQuY29tIiwidXBuIjoibWFuaTJANnowbDd2Lm9ubWljcm9zb2Z0LmNvbSIsInV0aSI6Ii1wY04wV3dzUTBTQXRzNEhjNS1GQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbIjYyZTkwMzk0LTY5ZjUtNDIzNy05MTkwLTAxMjE3NzE0NWUxMCIsImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfZnRkIjoiUE9YU0xZSVBpVndKWmpzSDBJNDJNTGRtTXZtNFhWcGJLRURveEd1bHg0cyIsInhtc19pZHJlbCI6IjEgMTQiLCJ4bXNfc3QiOnsic3ViIjoiZ28wa3JDUHM1azgyYzJaNmhRNzJPcE94N3pQcmphVS1NV181Z1p6cG5ZVSJ9LCJ4bXNfdGNkdCI6MTY0Njg3OTI5MX0.oqAzQowomgSkIjM_whUJ2BPVxtf1lp7uRS03TrIQ9D1ISDbo31KUnTF7hRnHnZvTbmIUEIAKWI0v7yZ0iXYqo-ts0iH7TXHEXWTBTZebtYX0POtE2teuwKyGBbUQ-Pskkkwn9ja19GblfSej8BvmhPmY-V51kmbkFuvgx-cWvQYam13U-YHrUS4AnXEB4Fa5FZqx_PI2eae4X2nLbJ0zOp60t4DEnIXcnuY7BcxBaJFh81cWuC0OwC-xBAasWV1lkBXkdIq7XNpz1-fVBg-vxI0-qJrLFvGX0VYKY6Fp5lesNgLMCwgYIzXphmeEmO3poOEJ_Nv2-qbw-uzs0lvHbA';
+
 
 // async function checkSubscriptionStatus(subscriptionId:any) {
 //   try {
@@ -80,11 +77,14 @@ async function createSubscription(accessToken: any) {
         },
     });
     try {
+        // Verify the mailbox is accessible
+        // const mailbox = await client.api('/me').get();
+        // console.log('Mailbox details:', mailbox);
         const subscription = await client.api('/subscriptions').post({
             changeType: 'created', // Events to track
             notificationUrl: WEBHOOK_URL, // Your endpoint to receive notifications
             resource: '/me/messages', // Resource to track
-            expirationDateTime: '2025-01-10T23:59:59.0000000Z', // Expiry time (max 1 hour for messages)
+            expirationDateTime: '2025-03-01T23:59:59.0000000Z', // Expiry time (max 1 hour for messages)
             // clientState: 'secretClientValue', // Optional: Ensures the notification is from Microsoft
         });
 
@@ -106,7 +106,8 @@ async function refreshToken(token: any) {
 app.get('/auth', async (req: any, res: any) => {
     try {
         const authUrl = await msalClient.getAuthCodeUrl({
-            scopes: ['User.Read'],
+            scopes: ['api://a866d7cd-4504-45e0-87d0-3d1039df49bf/.default'],
+            // scopes: ['User.Read', 'Mail.ReadWrite', 'MailboxSettings.ReadWrite'],
             redirectUri: 'http://localhost:80/auth/callback',
             prompt: 'consent'
         });
@@ -124,7 +125,8 @@ app.get('/auth/callback', async (req: any, res: any) => {
     try {
         const tokenResponse = await msalClient.acquireTokenByCode({
             code: req.query.code,
-            scopes: ['User.Read','Mail.Read'],
+            scopes: ['api://a866d7cd-4504-45e0-87d0-3d1039df49bf/.default'],
+            // scopes: ["openid", "profile", "offline_access", 'api://a866d7cd-4504-45e0-87d0-3d1039df49bf/.default'],
             // scopes: ['User.Read', 'Mail.ReadWrite', 'MailboxSettings.ReadWrite'],
             redirectUri: REDIRECT_URI,
         });
@@ -138,6 +140,7 @@ app.get('/auth/callback', async (req: any, res: any) => {
         res.status(500).send('Authentication failed');
     }
 });
+
 
 
 
